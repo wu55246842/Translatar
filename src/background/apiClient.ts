@@ -44,9 +44,9 @@ export async function callApi<K extends ActionType>(
           { role: 'system', content: systemPrompt },
           { role: 'user', content: payload.text }
         ],
-        model: 'openai',
+        model: 'qwen-character',
         temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 3000
       })
     });
 
