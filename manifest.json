@@ -3,18 +3,27 @@
   "name": "Translatar",
   "description": "Correct English, translate, and rewrite selected text using your configured API.",
   "version": "1.0.0",
-  "permissions": ["activeTab", "contextMenus", "storage", "scripting", "clipboardWrite"],
-  "host_permissions": ["http://*/*", "https://*/*"],
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "storage",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
   "background": {
     "service_worker": "assets/background.js",
     "type": "module"
   },
   "action": {
     "default_title": "Translatar",
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/index.html"
   },
   "options_ui": {
-    "page": "options.html",
+    "page": "src/options/index.html",
     "open_in_tab": true
   },
   "commands": {
@@ -39,8 +48,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["assets/content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "assets/content.js"
+      ],
       "run_at": "document_idle"
     }
   ]

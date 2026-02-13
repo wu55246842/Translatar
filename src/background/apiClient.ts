@@ -6,10 +6,23 @@ interface RequestMap {
   rewrite: { text: string; style: 'concise' | 'formal' | 'casual'; preserveFormatting: boolean };
 }
 
-function endpointFor(action: ActionType): string {
-  if (action === 'correct') return '/english/correct';
-  if (action === 'translate') return '/translate';
-  return '/rewrite';
+
+
+const POLLINATIONS_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
+const API_TOKEN = 'sk_7DIvi93Ezkb2EVF7yyw9q7ghP7QkpbT2';
+
+function getSystemPrompt(action: ActionType, options: ExtensionOptions, payload: any): string {
+  if (action === 'correct') {
+    return 'You are an English language expert. Your task is to correct the grammar, spelling, and punctuation of the provided text. Maintain the original meaning and tone. Only return the corrected text, no explanations.';
+  }
+  if (action === 'translate') {
+    return `You are a professional translator. Translate the provided text into ${payload.targetLang || options.targetLang}. Ensure the translation is natural and accurate. Only return the translated text, no explanations.`;
+  }
+  if (action === 'rewrite') {
+    const style = payload.style || options.rewriteStyleDefault;
+    return `You are a professional writer. Rewrite the provided text in a ${style} style. Maintain the core message but adjust the tone and structure accordingly. Only return the rewritten text, no explanations.`;
+  }
+  return '';
 }
 
 export async function callApi<K extends ActionType>(
@@ -17,34 +30,60 @@ export async function callApi<K extends ActionType>(
   payload: RequestMap[K],
   options: ExtensionOptions
 ): Promise<ApiResponse> {
-  const base = options.apiBaseUrl.replace(/\/$/, '');
-  const response = await fetch(`${base}${endpointFor(action)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  const systemPrompt = getSystemPrompt(action, options, payload);
 
-  let data: unknown;
   try {
-    data = await response.json();
-  } catch {
-    return { ok: false, error: { code: 'INVALID_JSON', message: 'Server returned invalid JSON.' } };
-  }
+    const response = await fetch(POLLINATIONS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_TOKEN}`
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: payload.text }
+        ],
+        model: 'openai',
+        temperature: 0.3,
+        max_tokens: 1000
+      })
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: {
+          code: 'HTTP_ERROR',
+          message: `HTTP ${response.status}: ${response.statusText}`
+        }
+      };
+    }
+
+    const data: any = await response.json();
+    const resultText = data.choices?.[0]?.message?.content?.trim();
+
+    if (!resultText) {
+      return {
+        ok: false,
+        error: {
+          code: 'EMPTY_RESPONSE',
+          message: 'The AI returned an empty response.'
+        }
+      };
+    }
+
+    return {
+      ok: true,
+      resultText
+    };
+  } catch (err) {
     return {
       ok: false,
       error: {
-        code: 'HTTP_ERROR',
-        message: `HTTP ${response.status}: ${response.statusText}`
+        code: 'NETWORK_ERROR',
+        message: err instanceof Error ? err.message : 'Failed to connect to AI service.'
       }
     };
   }
-
-  const parsed = data as ApiResponse;
-  if (typeof parsed?.ok !== 'boolean') {
-    return { ok: false, error: { code: 'INVALID_SHAPE', message: 'Unexpected API response shape.' } };
-  }
-
-  return parsed;
 }
