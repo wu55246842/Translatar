@@ -95,8 +95,8 @@ chrome.runtime.onMessage.addListener((message: TriggerActionMessage | ProcessReq
             'translate',
             {
               text: message.text,
-              targetLang: options.targetLang,
-              sourceLang: options.sourceLang,
+              targetLang: message.targetLang || options.targetLang,
+              sourceLang: message.sourceLang || options.sourceLang,
               preserveFormatting: options.preserveFormatting
             },
             options
@@ -108,7 +108,11 @@ chrome.runtime.onMessage.addListener((message: TriggerActionMessage | ProcessReq
 
         const result = await callApi(
           'rewrite',
-          { text: message.text, style: options.rewriteStyleDefault, preserveFormatting: options.preserveFormatting },
+          {
+            text: message.text,
+            style: message.style || options.rewriteStyleDefault,
+            preserveFormatting: options.preserveFormatting
+          },
           options
         );
         if (result.ok) sendResponse({ ok: true, resultText: result.resultText });

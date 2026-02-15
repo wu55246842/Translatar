@@ -38,6 +38,9 @@ export interface ProcessRequestMessage {
   type: 'process-request';
   action: ActionType;
   text: string;
+  targetLang?: string;
+  sourceLang?: string;
+  style?: RewriteStyle;
 }
 
 export interface ProcessResultMessage {

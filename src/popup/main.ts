@@ -202,24 +202,38 @@ async function init() {
       </div>
 
       <div class="controls" id="translateControls" hidden>
-        <label class="label" style="margin:0">To:</label>
-        <select id="targetLang">
-          <option value="zh-Hans">Chinese (Simplified)</option>
-          <option value="en">English</option>
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-          <option value="fr">French</option>
-          <option value="es">Spanish</option>
-        </select>
+        <div style="display: flex; flex-direction: column; flex: 1;">
+          <label class="label">From:</label>
+          <select id="sourceLang">
+            <option value="auto">Auto Detect</option>
+            <option value="en" selected>English</option>
+            <option value="zh-Hans">Chinese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; flex: 1;">
+          <label class="label">To:</label>
+          <select id="targetLang">
+            <option value="zh-Hans" selected>Chinese</option>
+            <option value="en">English</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+          </select>
+        </div>
       </div>
 
       <div class="controls" id="rewriteControls" hidden>
-        <label class="label" style="margin:0">Style:</label>
-        <select id="rewriteStyle">
-          <option value="concise">Concise</option>
-          <option value="formal">Formal</option>
-          <option value="casual">Casual</option>
-        </select>
+        <div style="display: flex; flex-direction: column; flex: 1;">
+          <label class="label">Style:</label>
+          <select id="rewriteStyle">
+            <option value="concise">Concise</option>
+            <option value="formal">Formal</option>
+            <option value="casual">Casual</option>
+          </select>
+        </div>
       </div>
 
       <button id="processBtn" class="btn-primary">
@@ -242,13 +256,14 @@ async function init() {
   const outputArea = document.getElementById('outputArea') as HTMLDivElement;
   const translateControls = document.getElementById('translateControls')!;
   const rewriteControls = document.getElementById('rewriteControls')!;
+  const sourceLangSelect = document.getElementById('sourceLang') as HTMLSelectElement;
   const targetLangSelect = document.getElementById('targetLang') as HTMLSelectElement;
   const rewriteStyleSelect = document.getElementById('rewriteStyle') as HTMLSelectElement;
   const copyBtn = document.getElementById('copyBtn') as HTMLButtonElement;
 
-  // Set initial target lang from options
-  targetLangSelect.value = options.targetLang;
-  rewriteStyleSelect.value = options.rewriteStyleDefault;
+  // Set initial selections from options if available
+  if (options.targetLang) targetLangSelect.value = options.targetLang;
+  if (options.rewriteStyleDefault) rewriteStyleSelect.value = options.rewriteStyleDefault;
 
   // Tab switching
   tabs.forEach(tab => {
@@ -279,15 +294,13 @@ async function init() {
     outputArea.textContent = 'Processing...';
     copyBtn.hidden = true;
 
-    // Temporarily override options for this request if in Translate/Rewrite mode
-    const requestOptions = { ...options };
-    if (currentAction === 'translate') requestOptions.targetLang = targetLangSelect.value;
-    if (currentAction === 'rewrite') requestOptions.rewriteStyleDefault = rewriteStyleSelect.value as any;
-
     chrome.runtime.sendMessage({
       type: 'process-request',
       action: currentAction,
-      text
+      text,
+      sourceLang: currentAction === 'translate' ? sourceLangSelect.value : undefined,
+      targetLang: currentAction === 'translate' ? targetLangSelect.value : undefined,
+      style: currentAction === 'rewrite' ? rewriteStyleSelect.value as any : undefined
     }, (response: { ok: boolean; resultText?: string; errorMessage?: string }) => {
       processBtn.disabled = false;
       processBtn.innerHTML = originalBtnContent;
